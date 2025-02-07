@@ -29,16 +29,12 @@ pip install sympy
 
 After downloading the ZeroEval project, follow these steps to integrate the ZeroEval_padding extension:
 
-1. Clone this repository inside the ZeroEval project folder.
+1. Clone this repository.
 2. Copy the necessary files to their appropriate directories using the following command:
 
 ```bash
 cp -r ZeroEval_padding/src/* ZeroEval/src/
 ```
-
-3. Replace the original `task_configs.py` with the version from this repository.
-4. Place files inside the `evaluation` folder into the `evaluation` folder of the ZeroEval project.
-5. Similarly, place the files inside the `templates` folder into the corresponding folder in ZeroEval.
 
 ## Usage
 
