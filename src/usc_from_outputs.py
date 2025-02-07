@@ -43,7 +43,7 @@ def convert_json(input_file, output_file):
     print(f"Number of items with response index not extracted: {not_extracted}")
     print(f"Number of items with invalid response index: {invalid_index}")
     
-def convert_json_math(input_file, output_file, N=8):
+def convert_json_close(input_file, output_file, N=8):
     """
     Converts the input JSON data to the desired format and writes it to the output file.
     
@@ -90,9 +90,12 @@ if __name__ == "__main__":
     # Use argparse to specify the input and output file paths
     parser = argparse.ArgumentParser(description='Convert JSON data to the desired format.')
     parser.add_argument('--input_file', type=str, help='Path to the input JSON file')
+    parser.add_argument('--dataset_type', choices=['open', 'close'], default='open', help='Type of dataset (open or close)')
     args = parser.parse_args()
     input_json_file = args.input_file    
-    output_json_file = input_json_file.replace('.json', '-usc.json') # Replace with your desired output file path
-    # convert_json(input_json_file, output_json_file)
-    convert_json_math(input_json_file, output_json_file)
+    output_json_file = input_json_file.replace('.json', '-usc.json') 
+    if args.dataset_type == 'open':
+        convert_json(input_json_file, output_json_file)
+    else:
+        convert_json_close(input_json_file, output_json_file)
     

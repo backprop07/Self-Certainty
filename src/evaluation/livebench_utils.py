@@ -214,3 +214,11 @@ def two_answers_are_equiv(answer1: str, answer2: str) -> bool:
     if is_equiv(parsed_answer1, parsed_answer2):
         return True
     return False
+
+def is_amps_hard(data):
+    if "subtask" not in data and "task" not in data:
+        return False
+    task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
+    if "amps_hard" in task_or_subtask:
+        return True
+    return False

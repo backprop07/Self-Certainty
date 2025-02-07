@@ -1,57 +1,12 @@
-import json 
-from collections import defaultdict
-import os 
-from tabulate import tabulate 
+import json
+import os
+from tabulate import tabulate
 import re
-import sys 
-from eval_utils import load_model_results, extract_values_from_json, extract_first_complete_json, model_specific_extraction, model_name_replacement
-from livebench_math_utils.AMPS_Hard.utils import amps_hard_process_results
-from livebench_math_utils.AMPS_Hard.utils import amps_hard_process_results_with_processed_output
-from livebench_math_utils.math_competitions.utils import mathcontest_process_results, aime_process_results
-from livebench_math_utils.olympiad.utils import proof_rearrangement_process_results
 import argparse
-from eval_utils_padding import is_amps_hard, sanitize_math_answers, convert_AAAAA_to_A
+from eval_utils import load_model_results, extract_values_from_json, extract_first_complete_json, model_specific_extraction, model_name_replacement
+from ZeroEval_padding.evaluation.livebench_utils import amps_hard_process_results_with_processed_output, is_amps_hard
+from eval_utils_padding import sanitize_math_answers, convert_AAAAA_to_A, extract_answer_from_output, boxed_extraction
 
-
-# def livebench_implemented_correct(data):
-
-#     task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
-#     question_text = data["problem"]
-#     ground_truth = data["answer"]
-#     llm_answer = data["output"][0]
-#     score = 0
-#     splits = task_or_subtask.split('_')
-#     if splits[0] in ["amc", "smc"] or (len(splits) > 1 and splits[1] == "amc"):
-#         score = mathcontest_process_results(ground_truth, llm_answer, question_text)
-#     elif splits[0] == "aime":
-#         score = aime_process_results(ground_truth, llm_answer)
-#     elif splits[0] in ["imo", "usamo"]:
-#         score = proof_rearrangement_process_results(ground_truth, llm_answer, edit_distance=True)
-#     elif "amps_hard" in task_or_subtask:
-#         score = amps_hard_process_results(ground_truth, llm_answer)
-#     return score==1
-
-# def is_MCQA(data):
-#     mc = False
-#     task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
-#     splits = task_or_subtask.split('_')
-#     if splits[0] in ["amc", "smc"] or (len(splits) > 1 and splits[1] == "amc"):
-#         mc = True
-#     return mc
-
-# def is_aime(data):
-#     task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
-#     splits = task_or_subtask.split('_')
-#     if splits[0] == "aime":
-#         return True
-#     return False
-        
-# def is_imo(data):
-#     task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
-#     splits = task_or_subtask.split('_')
-#     if splits[0] in ["imo", "usamo"]:
-#         return True
-#     return False
 
 def eval_model(model, filepath):
     global private_solutions
@@ -74,11 +29,9 @@ def eval_model(model, filepath):
         flag_parsed_answer = True
         if prediction_json is None or "answer" not in prediction_json:
             prediction_json = extract_values_from_json(prediction_str, allow_no_quotes=True)
-            # print("-")
         if prediction_json is None or "answer" not in prediction_json: 
             try_extracted_answer = model_specific_extraction(model_dir, prediction_str)
             if try_extracted_answer:
-                # print(f"Extracted answer from model: {try_extracted_answer}")
                 prediction_json["answer"] = try_extracted_answer
             else:
                 no_answer += 1 
@@ -88,11 +41,6 @@ def eval_model(model, filepath):
         correct_answer = item["answer"].replace("#", "").strip()
         model_answer = None 
         if not flag_parsed_answer:
-            # if "{"+correct_answer+"}" in prediction_str:
-            # # Note: we assume the answer is correct if it is in the prediction string
-            #     parsed_item["remarks"] = "Correct answer + {} is in the prediction string"
-            #     model_answer = correct_answer
-            # else:
             parsed_item["model_answer"] = {"raw": None, "sanitized": None, "first_number": None} # not matched 
             parsed_item["correct_answer"] = {"raw": correct_answer}
             parsed_item["matched"] = "No answer extracted"
@@ -111,18 +59,7 @@ def eval_model(model, filepath):
         first_number_in_model_answer = re.search(r"-?\d+(\.\d+)?", model_answer)
         first_number_in_correct_answer = re.search(r"-?\d+(\.\d+)?", correct_answer)
         correct = False 
-        # if is_MCQA(item):
-        #     if model_answer == correct_answer:
-        #         correct = True
-        # elif livebench_implemented_correct(item):
-        #     correct = True
-        # # elif first_number_in_model_answer and first_number_in_correct_answer:
-        # #     if float(first_number_in_model_answer.group()) == float(first_number_in_correct_answer.group()):
-        # #         correct = True
-        # # elif model_answer == correct_answer:
-        # #     correct = True
-        
-        #only amps hard and MCQA differs; imo one response repeat answer 3 times, 1,1,1, can be treated as correct or incorrect, consider it incorrect.
+
         if model_answer == correct_answer:
             correct = True
         elif "livebench" not in item["dataset"]:
@@ -148,7 +85,7 @@ def eval_model(model, filepath):
  
     result = {}
     result["Model"] = model.split("%")[0]
-    result["Mode"] = model.split("%")[1]
+    result["Mode"] = "Eval"
     result["Acc"] = f"{solved_examples/num_total_examples*100:.2f}"
     result["No answer"] = f"{no_answer/num_total_examples*100:.2f}"
     result["Total"] = num_total_examples
@@ -182,11 +119,9 @@ def eval_model_best(model, filepath, best_N):
             flag_parsed_answer = True
             if prediction_json is None or "answer" not in prediction_json:
                 prediction_json = extract_values_from_json(prediction_str, allow_no_quotes=True)
-                # print("-")
             if prediction_json is None or "answer" not in prediction_json: 
                 try_extracted_answer = model_specific_extraction(model_dir, prediction_str)
                 if try_extracted_answer:
-                    # print(f"Extracted answer from model: {try_extracted_answer}")
                     prediction_json["answer"] = try_extracted_answer
                 else:
                     continue 
@@ -195,11 +130,6 @@ def eval_model_best(model, filepath, best_N):
             correct_answer = item["answer"].replace("#", "").strip()
             model_answer = None 
             if not flag_parsed_answer:
-                # if "{"+correct_answer+"}" in prediction_str:
-                # # Note: we assume the answer is correct if it is in the prediction string
-                #     parsed_item["remarks"] = "Correct answer + {} is in the prediction string"
-                #     model_answer = correct_answer
-                # else:
                 parsed_item["model_answer"] = {"raw": None, "sanitized": None, "first_number": None} # not matched 
                 parsed_item["correct_answer"] = {"raw": correct_answer}
                 parsed_item["matched"] = "No answer extracted"
@@ -208,7 +138,7 @@ def eval_model_best(model, filepath, best_N):
             else:
                 model_answer = str(prediction_json["answer"])
             model_answer = convert_AAAAA_to_A(model_answer)
-            # sanitize the answers
+
             raw_model_answer = model_answer[:]
             model_answer = sanitize_math_answers(model_answer)
             correct_answer = sanitize_math_answers(correct_answer)
@@ -243,7 +173,7 @@ def eval_model_best(model, filepath, best_N):
  
     result = {}
     result["Model"] = model.split("%")[0]
-    result["Mode"] = model.split("%")[1]
+    result["Mode"] = "best"
     result["Acc"] = f"{solved_examples/num_total_examples*100:.2f}"
     result["No answer"] = f"{no_answer/num_total_examples*100:.2f}"
     result["Total"] = num_total_examples
@@ -324,7 +254,7 @@ def eval_model_first_answered(model, filepath, best_N):
  
     result = {}
     result["Model"] = model.split("%")[0]
-    result["Mode"] = model.split("%")[1]
+    result["Mode"] = "First_answered"
     result["Acc"] = f"{solved_examples/num_total_examples*100:.2f}"
     result["No answer"] = f"{no_answer/num_total_examples*100:.2f}"
     result["Total"] = num_total_examples
@@ -338,9 +268,6 @@ def gen_results(run_name_folders, mode="eval", best_N=-1):
     columns = ["Model", "Mode", "Acc", "No answer", "Total", "Reason Lens"]
     rows = []
     for model_name, filepath in model_results.items(): 
-        # print(model_name)
-        # if model_name in ["gemini-1.5-flash-exp-0827%greedy"]:
-        #     continue
         if mode == "best":
             result, parsed_results = eval_model_best(model_name, filepath, best_N)
         elif mode == "first_answered":
@@ -362,18 +289,10 @@ def gen_results(run_name_folders, mode="eval", best_N=-1):
     table_data = [[row[col] for col in columns] for row in rows]
 
     print(tabulate(table_data, headers=columns, tablefmt="fancy_outline", stralign="center", numalign="center"))
-    # print(tabulate(rows, headers=columns, tablefmt="github"))
 
-    # write to markdown file
-    banner_header = """
-<div style="text-align: center;">
-  <img src="https://github.com/user-attachments/assets/4666e72d-4202-4283-8e78-e5ce2b030dcf" alt="zebra_banner" style="width: 69%;" />
-</div>
-
-
-"""
+    
     with open(f"result_dirs/{data_name}.summary.md", "w") as f:
-        f.write(banner_header+tabulate(table_data, headers=columns, tablefmt="github", stralign="center", numalign="center"))
+        f.write(tabulate(table_data, headers=columns, tablefmt="github", stralign="center", numalign="center"))
 
     # write to json file 
     with open(f"result_dirs/{data_name}.summary.json", "w") as f:
@@ -391,9 +310,7 @@ if __name__ == "__main__":
     mode = args.mode
  
     run_name_folders = {
-        mode: f"result_dirs/{data_name}", 
-        # "sampling": f"result_dirs/{data_name}/sampling",
-        # "greedy@no_cot": f"result_dirs/{data_name}/greedy@no_cot",
+        mode: f"result_dirs/{data_name}"
     } 
     if mode == "eval":
         gen_results(run_name_folders)

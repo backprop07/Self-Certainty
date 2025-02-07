@@ -2,10 +2,8 @@ import json
 import sys
 import os
 import re
-
-sys.path.append("/data/xuandong_zhao/mnt/zheweikang/ZeroEval/src/evaluation") 
-
 from eval_utils import extract_values_from_json, extract_first_complete_json, model_specific_extraction
+
 def _fix_fracs(string):
     substrs = string.split("\\frac")
     new_str = substrs[0]
@@ -180,15 +178,6 @@ def unicode_to_latex_code(input_str):
     
     return output_str
 
-
-def is_amps_hard(data):
-    if "subtask" not in data and "task" not in data:
-        return False
-    task_or_subtask = data["subtask"] if "subtask" in data.keys() else data["task"]
-    if "amps_hard" in task_or_subtask:
-        return True
-    return False
-
 def latex_to_fraction(latex_str):
     # Regular expression to match LaTeX fraction format
     pattern = r'\\frac\{([^}]+)\}\{([^}]+)\}'
@@ -270,3 +259,41 @@ def report_reason_length(prediction_str):
     if prediction_json is None or "reasoning" not in prediction_json:
         return 0
     return len(prediction_json["reasoning"])
+
+def boxed_extraction(prediction_str): 
+    if "boxed" in prediction_str[-30:]:
+        # print(prediction_str)
+        # extract "$\boxed{36}$" --> 36 
+        # print(prediction_str)
+        match = re.search(r'\\boxed{([\w\d]+)}', prediction_str)
+        if match:
+            return match.group(1)
+        # match \boxed{expression}, where the expression can contain any LaTeX math
+        match = re.search(r'\\boxed{(.+?)}', prediction_str)
+        if match:
+            return match.group(1)
+    return None
+
+def extract_answer_from_output_for_eval(prediction_str, model):
+    prediction_json = extract_first_complete_json(prediction_str)
+    flag_parsed_answer = True
+    allow_strict_box = False
+    if prediction_json is None or "answer" not in prediction_json:
+        prediction_json = extract_values_from_json(prediction_str, allow_no_quotes=True)
+        # print("-")
+    if prediction_json is None or "answer" not in prediction_json: 
+        try_extracted_answer = model_specific_extraction(model, prediction_str)
+        if try_extracted_answer:
+            # print(f"Extracted answer from model: {try_extracted_answer}")
+            prediction_json["answer"] = try_extracted_answer
+        else:
+            if allow_strict_box:
+                try_extracted_answer = boxed_extraction(prediction_str)
+                if try_extracted_answer:
+                    prediction_json["answer"] = try_extracted_answer
+                else:
+                    flag_parsed_answer = False
+            else:
+                flag_parsed_answer = False
+    
+    return prediction_json, flag_parsed_answer

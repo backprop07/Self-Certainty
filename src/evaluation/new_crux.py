@@ -17,10 +17,6 @@ from eval_utils import (
     model_name_replacement
 )
 
-###############################################################################
-# Evaluation Functions
-###############################################################################
-
 def eval_model(model: str, filepath: str):
     """
     Evaluate the model on a CRUX-like dataset. 
@@ -101,7 +97,7 @@ def eval_model(model: str, filepath: str):
 
     result = {
         "Model": model_name_replacement(model.split("%")[0]),
-        "Mode": model.split("%")[1] if "%" in model else "default",
+        "Mode": "eval",
         "Acc": f"{acc:.2f}",
         "No answer": f"{no_ans_rate:.2f}",
         "Total": num_total_examples,
@@ -190,7 +186,7 @@ def eval_model_best(model: str, filepath: str, best_N: int):
 
     result = {
         "Model": model_name_replacement(model.split("%")[0]),
-        "Mode": model.split("%")[1] if "%" in model else "default",
+        "Mode": "best",
         "Acc": f"{acc:.2f}",
         "No answer": f"{no_ans_rate:.2f}",
         "Total": num_total_examples,
@@ -240,7 +236,6 @@ def eval_model_first_answered(model: str, filepath: str, best_N: int):
                     prediction_json = prediction_json or {}
                     prediction_json["answer"] = try_extracted_answer
 
-            # We found the first answered attempt
             found_answer = True
             reason_str = prediction_json.get("reasoning", "")
 
@@ -277,7 +272,7 @@ def eval_model_first_answered(model: str, filepath: str, best_N: int):
 
     result = {
         "Model": model_name_replacement(model.split("%")[0]),
-        "Mode": model.split("%")[1] if "%" in model else "default",
+        "Mode": "first_answered",
         "Acc": f"{acc:.2f}",
         "No answer": f"{no_ans_rate:.2f}",
         "Total": num_total_examples,
@@ -285,9 +280,6 @@ def eval_model_first_answered(model: str, filepath: str, best_N: int):
     }
     return result, parsed_results
 
-###############################################################################
-# Results Aggregation
-###############################################################################
 
 def gen_results(run_name_folders, data_name="crux", mode="eval", best_N=-1):
     """
@@ -322,16 +314,9 @@ def gen_results(run_name_folders, data_name="crux", mode="eval", best_N=-1):
     print(tabulate(table_data, headers=columns, tablefmt="fancy_outline", stralign="center", numalign="center"))
 
     # Write to Markdown file
-    banner_header = """
-<div style="text-align: center;">
-  <img src="https://github.com/user-attachments/assets/4666e72d-4202-4283-8e78-e5ce2b030dcf"
-       alt="zebra_banner" style="width: 69%;" />
-</div>
-
-"""
     with open(f"result_dirs/{data_name}.summary.md", "w") as f:
         f.write(
-            banner_header + tabulate(table_data, headers=columns, tablefmt="github",
+            tabulate(table_data, headers=columns, tablefmt="github",
                                      stralign="center", numalign="center")
         )
 
@@ -339,9 +324,6 @@ def gen_results(run_name_folders, data_name="crux", mode="eval", best_N=-1):
     with open(f"result_dirs/{data_name}.summary.json", "w") as f:
         json.dump(rows, f, indent=2)
 
-###############################################################################
-# Main
-###############################################################################
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate model on CRUX-like dataset")
@@ -360,10 +342,7 @@ if __name__ == "__main__":
     # Configure your run_name_folders. Each key is "Model%Mode"
     # Values are the paths to JSON files with model outputs.
     run_name_folders = {
-        f"{data_name}%{mode}": f"result_dirs/{data_name}",
-        # Add additional modes or custom paths as needed:
-        # f"{data_name}%sampling": f"result_dirs/{data_name}/sampling",
-        # f"{data_name}%no_cot": f"result_dirs/{data_name}/no_cot",
+        "methods": f"result_dirs/{data_name}"
     }
 
     gen_results(run_name_folders, data_name=data_name, mode=mode, best_N=best_N)

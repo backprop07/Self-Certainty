@@ -1,23 +1,14 @@
 import argparse
 import json
-from evaluation.livebench_math_utils.AMPS_Hard.utils import two_answers_are_equiv
-from evaluation.eval_utils import extract_values_from_json, extract_first_complete_json, model_specific_extraction
-from evaluation.eval_utils_padding import is_amps_hard, sanitize_math_answers, convert_AAAAA_to_A, extract_answer_from_output
+from ZeroEval_padding.evaluation.livebench_utils import two_answers_are_equiv
+from evaluation.eval_utils_padding import is_amps_hard, extract_answer_from_output
 import torch
 import tqdm
 import os
 
-# Set the environment variable for PyTorch CUDA memory allocation
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-
-def normalize_confidence(confidence: float) -> float:
-    confidence = max(10, confidence)
-    confidence = min(25, confidence)
-    confidence = (confidence - 10) / 15
-    return confidence
 
 @torch.no_grad()    
-def confidence_with_file(filepath, best_N=5, window_size=10, model="default", mode="middle", power=0.5):
+def confidence_with_file(filepath, best_N=5, power=0.5):
     with open(filepath, "r") as f:
         data = json.load(f)
     
@@ -45,10 +36,7 @@ def confidence_with_file(filepath, best_N=5, window_size=10, model="default", mo
 
         # Perform Borda count based on confidences
         sorted_indices = sorted(range(len(all_confidences)), key=lambda k: all_confidences[k], reverse=True)
-        votes_per_output = [len(all_confidences) - rank for rank in range(len(all_confidences))]
-        
-        # Exponetial votes
-        # votes_per_output = [1.2**vote for vote in votes_per_output]        
+        votes_per_output = [len(all_confidences) - rank for rank in range(len(all_confidences))] 
         
         # Power function votes
         votes_per_output = [vote**power for vote in votes_per_output]
@@ -84,28 +72,19 @@ def confidence_with_file(filepath, best_N=5, window_size=10, model="default", mo
         new_item["output"] = [outputs[best_index]]
         new_item["confidence"] = best_confidence
         to_write.append(new_item)
-        # print(f"Processed {index+1}/{len(data)}")
     
     output_file = input_file.replace(".json", f"-confidence-borda-power-{power}-{best_N}-kl.json")
     print(f"Writing to {output_file}")
     with open(output_file, "w") as f:
         json.dump(to_write, f, indent=4)
     
-# python3 src/confidence_majority_from_list.py --input_file /data/xuandong_zhao/mnt/zheweikang/ZeroEval/result_dirs/gsm/Llama3.1-samples-gsm-confidence-list.json
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", type=str, required=True)
     parser.add_argument("--best_N", type=int, default=64)
-    parser.add_argument("--window_size", type=int, default=-1)
-    parser.add_argument("--model", type=str, default="default")
-    parser.add_argument("--mode", type=str, default="all")
-    parser.add_argument("--power", type=float, default=0)
+    parser.add_argument("--power", type=float, default=0.5)
     args = parser.parse_args()
     input_file = args.input_file
-    # print(f"Processing {input_file}")
-    # self_consistency_file(input_file, best_N=args.best_N)
-
-    # Call the function
     confidence_with_file(input_file, best_N=args.best_N, window_size=args.window_size, model=args.model, mode=args.mode, power=args.power)
             
         

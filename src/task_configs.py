@@ -1,12 +1,12 @@
 from datasets import load_dataset
 from _TEMPLATES import apply_mc_template, apply_lgp_grid_template, apply_oeqa_template
-from livecode.livecode_utils import load_code_generation_dataset, get_generic_question_template_answer, CodeGenerationProblem, extract_question
+from ZeroEval_padding.evaluation.livecode_utils import load_code_generation_dataset, get_generic_question_template_answer, CodeGenerationProblem, extract_question
 import json
 from templates.USC import usc_prompt
 from evaluation.eval_utils_padding import extract_answer_from_output
 
 def load_livebench_data():
-    dataset = load_dataset("livebench/math", cache_dir="/data/xuandong_zhao/mnt/zheweikang/data", split="test")
+    dataset = load_dataset("livebench/math", split="test")
     dataset = dataset.map(lambda x, idx: {'id': idx}, with_indices=True)
     purge_ending = lambda x: x[0]
     dataset = dataset.map(lambda x: {'problem': purge_ending(x['turns'])})
@@ -33,25 +33,10 @@ def mapping_task_names(data_name):
     elif data_name == "crux":
         dataset = load_dataset("flydust/zero-eval", "crux", split="test")
     elif data_name == "math-l5":
-        dataset = load_dataset("AI-MO/aimo-validation-math-level-5", split="train")
-    elif data_name == "math-l1-new":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math-l1.json"
-        dataset = load_dataset("json", data_files=path, split="train")
-    elif data_name == "math-l2-new":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math-l2.json"
-        dataset = load_dataset("json", data_files=path, split="train")
-    elif data_name == "math-l3-new":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math-l3.json"
-        dataset = load_dataset("json", data_files=path, split="train")
-    elif data_name == "math-l4-new":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math-l4.json"
-        dataset = load_dataset("json", data_files=path, split="train")
-    elif data_name == "math-l5-new":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math-l5.json"
-        dataset = load_dataset("json", data_files=path, split="train")
-    elif data_name == "math":
-        path = "/data/xuandong_zhao/mnt/zheweikang/MATH_formatted/math_all_levels.json"
-        dataset = load_dataset("json", data_files=path, split="train")
+        dataset = load_dataset("AI-MO/aimo-validation-math-level-5", split="test")
+    elif data_name == "math-lx-new":
+        path = "path/to/math-lx.json"
+        dataset = load_dataset("json", data_files=path, split="test")
     elif data_name == "livecode":
         dataset = load_code_generation_dataset()  
     elif data_name == "livebench-math":
@@ -78,7 +63,7 @@ def prompt_generation(data_name, data_item, args):
         prompt = data_item["instruction"]
     elif data_name in ["zebra-grid"]:
         prompt = apply_lgp_grid_template(data_item) 
-    elif data_name in ["gsm", "math-l5", "livebench-math", "math-l1-new", "math-l2-new", "math-l3-new", "math-l4-new", "math-l5-new", "math"]:
+    elif data_name in ["gsm"] or "math" in data_name:
         question_key = "question"
         if data_name == "math-l5" or data_name == "livebench-math" or ("math" in data_name):
             question_key = "problem"
@@ -95,7 +80,6 @@ def prompt_generation(data_name, data_item, args):
         prompt = apply_oeqa_template(data_item)
     elif "usc-" in data_name:
         question = extract_question(data_item["chat_history"][0])
-        # question = data_item["problem"]
         outputs = data_item["responses"]
         prompt = usc_prompt(question, outputs)
     else:
