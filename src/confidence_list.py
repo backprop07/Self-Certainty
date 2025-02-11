@@ -20,11 +20,11 @@ def confidence_logits(logits: torch.Tensor, attention_mask: torch.Tensor):
     attention_mask = attention_mask.contiguous().squeeze()
     V = logits.shape[-1]
     logprob = torch.nn.functional.log_softmax(logits.view(-1, V), dim=-1)
-    naive = torch.full_like(logprob, 1.0 / V)
-    conf = torch.nn.functional.kl_div(logprob, naive, reduction='none').sum(dim=-1)
+    conf = -1/V * torch.sum(logprob + torch.log(V), dim=-1)
     conf = conf.view(-1)
     valid_conf = conf * attention_mask.view(-1)
     return valid_conf
+
 
 @torch.no_grad()
 def confidence_with_file(filepath, output_file=None, batch_size=4):
