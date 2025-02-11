@@ -1,6 +1,6 @@
-# ZeroEval_padding
+# Self-Certainty
 
-ZeroEval_padding is an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) repository, for self-certainty calculation.
+This repository is used for self-certainty evaluation as an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) project.
 ## Attributions
 
 This project incorporates and builds upon the following open-source repositories:
