@@ -1,21 +1,6 @@
 # Self-Certainty
 
 This repository is used for self-certainty evaluation as an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) project.
-## Attributions
-
-This project incorporates and builds upon the following open-source repositories:
-
-### ZeroEval
-
-- **Repository:** [ZeroEval](https://github.com/WildEval/ZeroEval)
-- **License:** [Apache License 2.0](https://github.com/WildEval/ZeroEval/blob/main/LICENSE)
-- **Description:** A unified framework for evaluating instruction-tuned large language models on tasks like MMLU and GSM.
-
-### LiveBench
-
-- **Repository:** [LiveBench](https://github.com/LiveBench/LiveBench)
-- **License:** [Apache License 2.0](https://github.com/LiveBench/LiveBench/blob/main/LICENSE)
-- **Description:** A challenging, continuously updated benchmark that sources new questions monthly from various contemporary datasets.
 
 ## Installation
 
@@ -38,11 +23,9 @@ cp -r ZeroEval_padding/src/* ZeroEval/src/
 
 ## Usage
 
-Here’s a brief overview of the key scripts and their usage:
+### Self-certainty calculation
 
-### `confidence_list.py`
-
-Calculates the self-certainty score for a list of outputs based on the given input.
+`confidence_list.py`: Calculates the self-certainty score for a list of outputs based on the given input.
 
 **Example usage:**
 
@@ -127,3 +110,19 @@ Extends `crux_eval.py` to support the "first_answered" and "best" evaluation met
 ```bash
 python3 src/evaluation/new_crux.py --dataset /path/to/input.json --mode best --best_N 16
 ```
+
+## Attributions
+
+This project incorporates and builds upon the following open-source repositories:
+
+### ZeroEval
+
+- **Repository:** [ZeroEval](https://github.com/WildEval/ZeroEval)
+- **License:** [Apache License 2.0](https://github.com/WildEval/ZeroEval/blob/main/LICENSE)
+- **Description:** A unified framework for evaluating instruction-tuned large language models on tasks like MMLU and GSM.
+
+### LiveBench
+
+- **Repository:** [LiveBench](https://github.com/LiveBench/LiveBench)
+- **License:** [Apache License 2.0](https://github.com/LiveBench/LiveBench/blob/main/LICENSE)
+- **Description:** A challenging, continuously updated benchmark that sources new questions monthly from various contemporary datasets.
