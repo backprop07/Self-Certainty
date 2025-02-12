@@ -17,14 +17,14 @@ def confidence_logits(logits: torch.Tensor, attention_mask: torch.Tensor):
     attention_mask: torch.Tensor, shape (batch_size, seq_length) or (seq_length)
     """
     logits = logits.contiguous()
-    attention_mask = attention_mask.contiguous().squeeze()
+    attention_mask = attention_mask.contiguous()
     V = logits.shape[-1]
-    logprob = torch.nn.functional.log_softmax(logits.view(-1, V), dim=-1)
-    conf = -1/V * torch.sum(logprob + torch.log(V), dim=-1)
-    conf = conf.view(-1)
-    valid_conf = conf * attention_mask.view(-1)
-    return valid_conf
-
+    V_tensor = torch.tensor(V, dtype=logits.dtype, device=logits.device)
+    logprob = torch.nn.functional.log_softmax(logits, dim=-1)
+    conf = -1/V * torch.sum(logprob + torch.log(V_tensor), dim=-1)
+    valid_conf = conf * attention_mask
+    batch_confidence_list = (valid_conf.sum(dim=-1) / attention_mask.sum(dim=-1)).tolist()
+    return batch_confidence_list
 
 @torch.no_grad()
 def confidence_with_file(filepath, output_file=None, batch_size=4):
@@ -153,7 +153,6 @@ def confidence_with_file(filepath, output_file=None, batch_size=4):
             )
             group_outputs_ids = group_tokenized['input_ids']            # (n, seq_length_out)
             group_outputs_attention_mask = group_tokenized['attention_mask']  # (n, seq_length_out)
-            group_outputs_lengths = group_outputs_attention_mask.sum(dim=1)   # (n,)
             
             # Build full sequences by concatenating the prompt and each output.
             full_ids_list = []
@@ -167,7 +166,7 @@ def confidence_with_file(filepath, output_file=None, batch_size=4):
             full_attention_mask = torch.stack(full_attention_mask_list)  # shape: (n, total_seq_length)
             
             # Process logits in batches to avoid CUDA OOM.
-            group_confidence_batches = []
+            group_confidences = []
             num_batches = (full_ids.shape[0] + current_batch_size - 1) // current_batch_size
             for batch_idx in range(num_batches):
                 torch.cuda.empty_cache()
@@ -181,15 +180,8 @@ def confidence_with_file(filepath, output_file=None, batch_size=4):
                 batch_outputs_logits = batch_logits[:, input_length:, :]
                 # Use the output attention mask from the tokenized group (for this batch).
                 batch_output_attention_mask = group_outputs_attention_mask[start_idx:end_idx]
-                batch_confidences = confidence_logits(batch_outputs_logits, batch_output_attention_mask.cpu())
-                group_confidence_batches.append(batch_confidences)
-            
-            # Concatenate batch results and reshape:
-            group_confidences_tensor = torch.cat(group_confidence_batches, dim=0)
-            padded_output_length = group_outputs_ids.shape[1]
-            group_confidences_tensor = group_confidences_tensor.view(-1, padded_output_length)
-            # Sum the confidence scores over the output tokens and normalize by the number of tokens.
-            group_confidences = (group_confidences_tensor.sum(dim=1) / group_outputs_lengths).tolist()
+                batch_confidence_list = confidence_logits(batch_outputs_logits, batch_output_attention_mask.cpu())
+                group_confidences.extend(batch_confidence_list)
             
             # Place the computed confidences back in the correct (original) positions.
             for i, orig_idx in enumerate(group_indices):
@@ -227,7 +219,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input JSON file.")
     parser.add_argument("--output_file", type=str, default=None, help="Path to the output JSON file.")
-    parser.add_argument("--batch_size", type=int, default=16, help="Batch size for processing.")
+    parser.add_argument("--batch_size", type=int, default=4, help="Batch size for processing.")
     args = parser.parse_args()
     
     confidence_with_file(args.input_file, args.output_file, args.batch_size)
