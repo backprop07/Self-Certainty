@@ -1,6 +1,16 @@
-# Self-Certainty
+# Self-Certainty Evaluation
 
-This repository is used for self-certainty evaluation as an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) project.
+This repository provides tools for evaluating **self-certainty**, a metric designed to measure model confidence, as an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) project.
+
+The self-certainty metric is calculated using the following formula:
+\begin{equation}
+    \textbf{Self-certainty} = -\frac{1}{nV}\sum_{i=1}^n\sum_{j=1}^{V} \log\left(V\cdot p(j|x,y_{<i})\right)
+\end{equation}
+Where:
+
+- \( n \) = Number of tokens in one sentence.
+- \( V \) = Vocabulary size.
+- \( p(j|x, y_{<i}) \) = Probability of token \( j \) given the context \( x \) and previous tokens \( y_{<i} \).
 
 ## Installation
 
@@ -12,10 +22,10 @@ pip install sympy
 
 ### Integrating ZeroEval_padding with ZeroEval
 
-After downloading the ZeroEval project, follow these steps to integrate the ZeroEval_padding extension:
+To integrate the ZeroEval_padding extension with the ZeroEval project, follow these steps:
 
 1. Clone this repository.
-2. Copy the necessary files to their appropriate directories using the following command:
+2. Copy the necessary files into the appropriate directories using the following command:
 
 ```bash
 cp -r ZeroEval_padding/src/* ZeroEval/src/
@@ -23,9 +33,9 @@ cp -r ZeroEval_padding/src/* ZeroEval/src/
 
 ## Usage
 
-### Self-certainty calculation
+### Self-certainty Calculation
 
-`confidence_list.py`: Calculates the self-certainty score for a list of outputs based on the given input.
+Use `confidence_list.py` to calculate the self-certainty score for a list of outputs based on the given input.
 
 **Example usage:**
 
@@ -33,17 +43,17 @@ cp -r ZeroEval_padding/src/* ZeroEval/src/
 python3 src/confidence_list.py --input_file /path/to/input.json
 ```
 
-The input file should be a JSON file with each item containing:
+The input file should be a JSON file containing:
 
 - `"generator"`: Path to the model used for generation.
 - `"output"`: List of model responses.
 - `"input"`: The string specifying the model input.
 
-By default, this will write the self-certainty list to `/path/to/input-confidence-list.json`.
+By default, the self-certainty list will be written to `/path/to/input-confidence-list.json`.
 
-### `self_certainty_from_list.py`
+### Choose Answer with Highest Confidence (`self_certainty_from_list.py`)
 
-Chooses the answer with the highest confidence score from a list of outputs, and assigns -infinity to answers without extractable content.
+This script selects the answer with the highest self-certainty score from a list of outputs. Answers without extractable content are assigned a confidence score of -infinity.
 
 **Example usage:**
 
@@ -51,7 +61,7 @@ Chooses the answer with the highest confidence score from a list of outputs, and
 python3 src/self_certainty_from_list.py --input_file /path/to/input.json --best_N 16
 ```
 
-### `voting_from_list.py`
+### Borda Voting on Output List (`voting_from_list.py`)
 
 Performs Borda voting on a list of outputs. The majority vote is equivalent to Borda voting with \( p = 0 \).
 
@@ -61,9 +71,9 @@ Performs Borda voting on a list of outputs. The majority vote is equivalent to B
 python3 src/voting_from_list.py --input_file /path/to/input.json --best_N 16 --power 0.5
 ```
 
-### `livecode_self_certainty_from_list.py`
+### Parse Answer into LiveCode Format (`livecode_self_certainty_from_list.py`)
 
-Chooses the answer with the highest confidence score from the list of outputs, and parses the answer into the LiveCode format (`{"question_id", "code_list"}`).
+This script selects the answer with the highest confidence score and parses it into the LiveCode format (`{"question_id", "code_list"}`).
 
 **Example usage:**
 
@@ -71,9 +81,9 @@ Chooses the answer with the highest confidence score from the list of outputs, a
 python3 src/livecode_self_certainty_from_list.py --input_file /path/to/input.json --output_file /path/to/output.json --best_N 16
 ```
 
-### `livecode_parsing.py`
+### LiveCode Parsing (`livecode_parsing.py`)
 
-Parses the first item in the outputs to the LiveCode format.
+Parses the first item in the outputs into the LiveCode format.
 
 **Example usage:**
 
@@ -81,15 +91,9 @@ Parses the first item in the outputs to the LiveCode format.
 python3 src/livecode_parsing.py --input_file /path/to/input.json --output_file /path/to/output.json
 ```
 
-### `usc_from_outputs.py`
+### USC Generation
 
-Helps USC choose the specified index of outputs. When `--dataset_type` is set to `close`, it helps USC select the first extractable answer if the original answer is not extractable.
-
-### `task_configs.py`
-
-To support evaluation for the MATH dataset (in addition to the original math-l5 dataset in ZeroEval), modify the `math-lx` section to specify the path to the extracted dataset.
-
-For USC generation, replace the dataset name (e.g., "gsm") with `"usc-N-path/to/file.json"`, where N is the number of samples per question to consider.
+For USC generation, modify the dataset name (e.g., "gsm") in ZeroEval generation to `"usc-N-path/to/file.json"`, where \( N \) is the number of samples per question to be considered.
 
 **Example usage:**
 
@@ -97,23 +101,13 @@ For USC generation, replace the dataset name (e.g., "gsm") with `"usc-N-path/to/
 bash zero_eval_local.sh -d "usc-8-path/to/samples.json" -m model_path -p model-usc -s 2 -b 4
 ```
 
-### `evaluation/new_math.py`
+### USC Selection from Outputs (`usc_from_outputs.py`)
 
-Extends the `math_eval.py` in ZeroEval to support evaluation for the LiveBench-Math dataset and adds methods like "first_answered" and "best."
-
-### `evaluation/new_crux.py`
-
-Extends `crux_eval.py` to support the "first_answered" and "best" evaluation methods.
-
-**Example usage:**
-
-```bash
-python3 src/evaluation/new_crux.py --dataset /path/to/input.json --mode best --best_N 16
-```
+The `usc_from_outputs.py` script assists USC (Universal Self-Confidence) in selecting a specific output index. When `--dataset_type` is set to `close`, it helps USC choose the first extractable answer if the original answer is not extractable.
 
 ## Attributions
 
-This project incorporates and builds upon the following open-source repositories:
+This project builds upon the following open-source repositories:
 
 ### ZeroEval
 
