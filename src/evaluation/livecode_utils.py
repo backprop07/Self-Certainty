@@ -119,7 +119,7 @@ class CodeGenerationProblem:
         }
 
 def load_code_generation_dataset(release_version="release_v3") -> list:
-    dataset = load_dataset("livecodebench/code_generation_lite", split="test", version_tag=release_version, trust_remote_code=True, cache_dir="/data/xuandong_zhao/mnt/zheweikang/data")
+    dataset = load_dataset("livecodebench/code_generation_lite", split="test", version_tag=release_version, trust_remote_code=True)
     print(f"Loaded {len(dataset)} problems")
     return dataset
 
