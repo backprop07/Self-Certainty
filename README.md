@@ -3,9 +3,11 @@
 This repository provides tools for evaluating **self-certainty**, a metric designed to measure model confidence, as an extension of the [ZeroEval](https://github.com/WildEval/ZeroEval) project.
 
 The self-certainty metric is calculated using the following formula:
-\begin{equation}
-    \textbf{Self-certainty} = -\frac{1}{nV}\sum_{i=1}^n\sum_{j=1}^{V} \log\left(V\cdot p(j|x,y_{<i})\right)
-\end{equation}
+
+$$
+\textbf{Self-certainty} = -\frac{1}{nV}\sum_{i=1}^n\sum_{j=1}^{V} \log\left(V\cdot p(j|x,y_{<i})\right)
+$$
+
 Where:
 
 - \( n \) = Number of tokens in one sentence.
