@@ -117,12 +117,10 @@ This project incorporates and builds upon the following open-source repositories
 
 ### ZeroEval
 
-- **Repository:** [ZeroEval](https://github.com/WildEval/ZeroEval)
-- **License:** [Apache License 2.0](https://github.com/WildEval/ZeroEval/blob/main/LICENSE)
+- **Repository:** [ZeroEval](https://github.com/WildEval/ZeroEval) **License:** [Apache License 2.0](https://github.com/WildEval/ZeroEval/blob/main/LICENSE)
 - **Description:** A unified framework for evaluating instruction-tuned large language models on tasks like MMLU and GSM.
 
 ### LiveBench
 
-- **Repository:** [LiveBench](https://github.com/LiveBench/LiveBench)
-- **License:** [Apache License 2.0](https://github.com/LiveBench/LiveBench/blob/main/LICENSE)
+- **Repository:** [LiveBench](https://github.com/LiveBench/LiveBench) **License:** [Apache License 2.0](https://github.com/LiveBench/LiveBench/blob/main/LICENSE)
 - **Description:** A challenging, continuously updated benchmark that sources new questions monthly from various contemporary datasets.
