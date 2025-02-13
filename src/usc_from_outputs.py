@@ -4,9 +4,9 @@ from evaluation.eval_utils_padding import  extract_answer_from_output
 import argparse
 
 def extract_response_index(text: str) -> int:
-    match = re.search(r"Response\s+(\d+)", text)
-    if match:
-        return int(match.group(1))
+    matches = re.findall(r"Response\s+(\d+)", text)
+    if matches:
+        return int(matches[-1])
     return None
 
 def convert_json(input_file, output_file):
