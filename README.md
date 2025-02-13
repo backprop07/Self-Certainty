@@ -4,9 +4,9 @@ This repository provides tools for evaluating **self-certainty**, a metric desig
 
 The self-certainty metric is calculated using the following formula:
 
-$$
+\[
 \textbf{Self-certainty} = -\frac{1}{nV}\sum_{i=1}^n\sum_{j=1}^{V} \log\left(V\cdot p(j|x,y_{<i})\right)
-$$
+\]
 
 Where:
 
