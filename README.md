@@ -13,6 +13,8 @@ Where:
 - $V$ = Vocabulary size.
 - $p(j|x, y_{<i})$ = Probability of token \( j \) given the context \( x \) and previous tokens $y_{<i}$.
 
+For more details, please refer to our paper: [Scalable Best-of-N Selection for Large Language Models via Self-Certainty](https://arxiv.org/abs/2502.18581).
+
 ## Installation
 
 Ensure you have [SymPy](https://www.sympy.org/) installed. You can install it via:
