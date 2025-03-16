@@ -41,7 +41,7 @@ def confidence_with_file(filepath, output_file=None, batch_size=4):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     llm = AutoModelForCausalLM.from_pretrained(
         model_dir,
-        torch_dtype=torch.float16
+        torch_dtype=torch.bfloat16
     ).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_dir, padding=True)
     
