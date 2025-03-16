@@ -174,7 +174,7 @@ def confidence_with_file(filepath, output_file=None, batch_size=4):
                 end_idx = min((batch_idx + 1) * current_batch_size, full_ids.shape[0])
                 batch_ids = full_ids[start_idx:end_idx].to(device)
                 batch_attention_mask = full_attention_mask[start_idx:end_idx].to(device)
-                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                     batch_logits = llm(batch_ids, attention_mask=batch_attention_mask).logits.to('cpu')
                 # Only consider logits for the output part (skip the prompt tokens).
                 batch_outputs_logits = batch_logits[:, input_length:, :]
