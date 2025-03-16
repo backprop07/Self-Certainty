@@ -1,7 +1,7 @@
 import argparse
 import json
-from ZeroEval_padding.evaluation.livebench_utils import two_answers_are_equiv
-from evaluation.eval_utils_padding import is_amps_hard, extract_answer_from_output
+from evaluation.livebench_utils import two_answers_are_equiv,is_amps_hard
+from evaluation.eval_utils_padding import extract_answer_from_output
 import torch
 import tqdm
 import os
