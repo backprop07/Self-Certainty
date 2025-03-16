@@ -31,7 +31,7 @@ To integrate the Self-Certainty extension with the ZeroEval project, follow thes
 2. Copy the necessary files into the appropriate directories using the following command:
 
 ```bash
-cp -r ZeroEval_padding/src/* ZeroEval/src/
+cp -r Self-Certainty/src/* ZeroEval/src/
 ```
 
 ## Usage
