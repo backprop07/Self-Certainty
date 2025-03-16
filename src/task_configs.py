@@ -1,6 +1,6 @@
 from datasets import load_dataset
 from _TEMPLATES import apply_mc_template, apply_lgp_grid_template, apply_oeqa_template
-from ZeroEval_padding.evaluation.livecode_utils import load_code_generation_dataset, get_generic_question_template_answer, CodeGenerationProblem, extract_question
+from evaluation.livecode_utils import load_code_generation_dataset, get_generic_question_template_answer, CodeGenerationProblem, extract_question
 import json
 from templates.USC import usc_prompt
 from evaluation.eval_utils_padding import extract_answer_from_output
