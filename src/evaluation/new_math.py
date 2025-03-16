@@ -4,7 +4,7 @@ from tabulate import tabulate
 import re
 import argparse
 from eval_utils import load_model_results, extract_values_from_json, extract_first_complete_json, model_specific_extraction, model_name_replacement
-from ZeroEval_padding.evaluation.livebench_utils import amps_hard_process_results_with_processed_output, is_amps_hard
+from evaluation.livebench_utils import amps_hard_process_results_with_processed_output, is_amps_hard
 from eval_utils_padding import sanitize_math_answers, convert_AAAAA_to_A, extract_answer_from_output, boxed_extraction
 
 
