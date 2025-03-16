@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("--power", type=float, default=0.5)
     args = parser.parse_args()
     input_file = args.input_file
-    confidence_with_file(input_file, best_N=args.best_N, window_size=args.window_size, model=args.model, mode=args.mode, power=args.power)
+    confidence_with_file(input_file, best_N=args.best_N, power=args.power)
             
         
     
