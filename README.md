@@ -11,9 +11,19 @@ Where:
 
 - $n$ = Number of tokens in one sentence.
 - $V$ = Vocabulary size.
-- $p(j|x, y_{<i})$ = Probability of token \( j \) given the context \( x \) and previous tokens $y_{<i}$.
+- $p(j|x, y_{<i})$ = Probability of token $j$ given the context $x$ and previous tokens $y_{<i}$.
 
 For more details, please refer to our paper: [Scalable Best-of-N Selection for Large Language Models via Self-Certainty](https://arxiv.org/abs/2502.18581).
+
+If you find this work useful, please consider citing our paper:
+```
+@article{kang2025scalable,
+  title={Scalable Best-of-N Selection for Large Language Models via Self-Certainty},
+  author={Kang, Zhewei and Zhao, Xuandong and Song, Dawn},
+  journal={arXiv preprint arXiv:2502.18581},
+  year={2025}
+}
+```
 
 ## Installation
 
