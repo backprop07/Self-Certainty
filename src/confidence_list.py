@@ -27,11 +27,13 @@ def confidence_logits(logits: torch.Tensor, attention_mask: torch.Tensor):
     return batch_confidence_list
 
 @torch.no_grad()
-def confidence_with_file(filepath, output_file=None, batch_size=4):
+def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=None):
     with open(filepath, "r") as f:
         data = json.load(f)
     
-    model_dir = data[0]["generator"]
+    if model_dir is None:
+        model_dir = data[0]["generator"]
+        
     best_N = len(data[0]["output"])
     
     print("Loading model:", model_dir)
@@ -221,6 +223,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input JSON file.")
     parser.add_argument("--output_file", type=str, default=None, help="Path to the output JSON file.")
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size for processing.")
+    parser.add_argument("--model_dir", type=str, default=None, help="Path to the model directory)")
     args = parser.parse_args()
     
-    confidence_with_file(args.input_file, args.output_file, args.batch_size)
+    confidence_with_file(args.input_file, args.output_file, args.batch_size, args.model_dir)
