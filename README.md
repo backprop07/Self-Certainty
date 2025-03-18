@@ -44,23 +44,26 @@ cp -r Self-Certainty/src/* ZeroEval/src/
 
 ## Usage
 
-### 1. Self-certainty Calculation 
+### 1. Self-Certainty Calculation
 
-Calculate the self-certainty score for a list of outputs based on the given input: (`confidence_list.py`)
+This script computes a self-certainty score for a collection of model outputs based on a given input. The implementation is provided in `confidence_list.py`.
 
-*Example usage:*
+**Example Usage:**
 
 ```bash
 python3 src/confidence_list.py --input_file /path/to/input.json
 ```
 
-The input file should be a JSON file containing:
+**Input File Requirements:**
 
-- `"generator"`: Path to the model used for generation.
-- `"output"`: List of model responses.
-- `"input"`: The string specifying the model input.
+The JSON input file must include the following keys:
+- **"generator"** (optional): The path to the model used for generating responses.
+- **"output"**: An array containing the model’s responses.
+- **"input"**: The text input provided to the model.
 
-By default, the self-certainty list will be written to `/path/to/input-confidence-list.json`.
+**Output Details:**
+
+By default, the script writes the self-certainty scores to a file named `/path/to/input-confidence-list.json`. If the `--model_dir` option is not specified, the script defaults to using the `generator` value from the first entry in the input file.
 
 ### 2. Choose Answer with Highest Self-Certainty Score
 
