@@ -5,6 +5,7 @@ import tempfile
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import tqdm
+import torch.nn.functional as F
 
 # Set the environment variable for PyTorch CUDA memory allocation
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -22,6 +23,21 @@ def confidence_logits(logits: torch.Tensor, attention_mask: torch.Tensor):
     V_tensor = torch.tensor(V, dtype=logits.dtype, device=logits.device)
     logprob = torch.nn.functional.log_softmax(logits, dim=-1)
     conf = -1/V * torch.sum(logprob + torch.log(V_tensor), dim=-1)
+    valid_conf = conf * attention_mask
+    batch_confidence_list = (valid_conf.sum(dim=-1) / attention_mask.sum(dim=-1)).tolist()
+    return batch_confidence_list
+
+def confidence_logprob_sum(logprob_sum: torch.Tensor, attention_mask: torch.Tensor, V: int):
+    """
+    Calculate the confidence of the logprob_sum.
+    logprob_sum: torch.Tensor, shape (batch_size, seq_length) or (seq_length)
+    attention_mask: torch.Tensor, shape (batch_size, seq_length) or (seq_length)
+    V: int, the vocab size
+    """
+    logprob_sum = logprob_sum.contiguous()
+    attention_mask = attention_mask.contiguous()
+    V_tensor = torch.tensor(V, dtype=logprob_sum.dtype, device=logprob_sum.device)
+    conf = -1/V * logprob_sum - torch.log(V_tensor)
     valid_conf = conf * attention_mask
     batch_confidence_list = (valid_conf.sum(dim=-1) / attention_mask.sum(dim=-1)).tolist()
     return batch_confidence_list
@@ -116,10 +132,10 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
             "large": {"outputs": [], "indices": []}
         }
         for idx, text in enumerate(outputs):
-            if len(text) > 10 * 1024:
+            if len(text) > 3 * 1024:
                 groups["large"]["outputs"].append(text)
                 groups["large"]["indices"].append(idx)
-            elif len(text) > 5 * 1024:
+            elif len(text) > 6 * 1024:
                 groups["medium"]["outputs"].append(text)
                 groups["medium"]["indices"].append(idx)
             else:
@@ -177,13 +193,14 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
                 batch_ids = full_ids[start_idx:end_idx].to(device)
                 batch_attention_mask = full_attention_mask[start_idx:end_idx].to(device)
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                    batch_logits = llm(batch_ids, attention_mask=batch_attention_mask).logits.to('cpu')
-                    batch_logits = batch_logits.to(torch.float32)
-                # Only consider logits for the output part (skip the prompt tokens).
-                batch_outputs_logits = batch_logits[:, input_length:, :]
+                    batch_logprob_sum = llm(batch_ids, attention_mask=batch_attention_mask).logits
+                    batch_logprob_sum = batch_logprob_sum[:, input_length:, :]
+                    batch_logprob_sum = F.log_softmax(batch_logprob_sum, dim=-1)
+                    batch_logprob_sum = batch_logprob_sum.sum(dim=-1).to('cpu').to(torch.float32)
+
                 # Use the output attention mask from the tokenized group (for this batch).
                 batch_output_attention_mask = group_outputs_attention_mask[start_idx:end_idx]
-                batch_confidence_list = confidence_logits(batch_outputs_logits, batch_output_attention_mask.cpu())
+                batch_confidence_list = confidence_logprob_sum(batch_logprob_sum, batch_output_attention_mask, llm.config.vocab_size)
                 group_confidences.extend(batch_confidence_list)
             
             # Place the computed confidences back in the correct (original) positions.
