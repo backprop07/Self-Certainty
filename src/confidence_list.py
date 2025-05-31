@@ -6,26 +6,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import tqdm
 import torch.nn.functional as F
-
-# Set the environment variable for PyTorch CUDA memory allocation
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-
-@torch.no_grad()
-def confidence_logits(logits: torch.Tensor, attention_mask: torch.Tensor):
-    """
-    Calculate the confidence of the logits.
-    logits: torch.Tensor, shape (batch_size, seq_length, vocab_size) or (seq_length, vocab_size)
-    attention_mask: torch.Tensor, shape (batch_size, seq_length) or (seq_length)
-    """
-    logits = logits.contiguous()
-    attention_mask = attention_mask.contiguous()
-    V = logits.shape[-1]
-    V_tensor = torch.tensor(V, dtype=logits.dtype, device=logits.device)
-    logprob = torch.nn.functional.log_softmax(logits, dim=-1)
-    conf = -1/V * torch.sum(logprob + torch.log(V_tensor), dim=-1)
-    valid_conf = conf * attention_mask
-    batch_confidence_list = (valid_conf.sum(dim=-1) / attention_mask.sum(dim=-1)).tolist()
-    return batch_confidence_list
+import pandas as pd 
+import numpy as np
 
 def confidence_logprob_sum(logprob_sum: torch.Tensor, attention_mask: torch.Tensor, V: int):
     """
@@ -42,15 +24,31 @@ def confidence_logprob_sum(logprob_sum: torch.Tensor, attention_mask: torch.Tens
     batch_confidence_list = (valid_conf.sum(dim=-1) / attention_mask.sum(dim=-1)).tolist()
     return batch_confidence_list
 
+
+def _load_examples(filepath: str, output_field_name: str = "output"):
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext == ".json":                                   # existing path
+        with open(filepath, "r") as f:
+            return json.load(f)
+
+    elif ext == ".parquet":                              # new path
+        df = pd.read_parquet(filepath)                   # uses pyarrow by default
+        # If the column `output` is a JSON-encoded string instead of a Python list,
+        # decode it so the rest of the pipeline stays unchanged.
+        if df[output_field_name].dtype == object and isinstance(df.iloc[0][output_field_name], str):
+            df[output_field_name] = df[output_field_name].apply(json.loads)
+
+        return df.to_dict(orient="records")              # == list[dict] like your JSON file
+
+    else:
+        raise ValueError(f"Unsupported input format: {ext}")
+
 @torch.no_grad()
-def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=None):
-    with open(filepath, "r") as f:
-        data = json.load(f)
-    
+def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=None, input_field_name="model_input", output_field_name="output"):
+    data = _load_examples(filepath, output_field_name)
+
     if model_dir is None:
         model_dir = data[0]["generator"]
-        
-    best_N = len(data[0]["output"])
     
     print("Loading model:", model_dir)
     torch.set_grad_enabled(False)
@@ -74,13 +72,6 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
         print("Added padding token to tokenizer")
         
     tokenizer.padding_side = "right"
-    
-    llm.eval()
-    # Wrap with DataParallel if multiple GPUs are available.
-    print(f"torch.cuda.device_count(): {torch.cuda.device_count()}")
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs for faster inference (DataParallel).")
-        llm = torch.nn.DataParallel(llm)
     
     llm.eval()
     print("Loaded model and tokenizer.")
@@ -112,7 +103,7 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
 
         # Encode the input prompt.
         input_encoded = tokenizer(
-            item["model_input"],
+            item[input_field_name],
             return_tensors="pt",
             padding=False,
             truncation=True,
@@ -123,7 +114,7 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
         input_length = input_attention_mask.sum().item()  # Actual token count of the prompt
 
         # Retrieve the top N outputs.
-        outputs = item["output"][:best_N]
+        outputs = item[output_field_name]
         
         # Classify outputs based on their raw text length (before tokenization).
         groups = {
@@ -220,7 +211,12 @@ def confidence_with_file(filepath, output_file=None, batch_size=4, model_dir=Non
         # Write the updated list to a temporary file.
         try:
             with tempfile.NamedTemporaryFile('w', delete=False, dir=os.path.dirname(output_file)) as tmp_file:
-                json.dump(to_write, tmp_file, indent=4)
+                json.dump(
+                    to_write,
+                    tmp_file,
+                    indent=4,
+                    default=lambda o: o.tolist() if isinstance(o, np.ndarray) else o  # ← new
+                )
                 temp_name = tmp_file.name
             os.replace(temp_name, output_file)
         except Exception as e:
@@ -237,10 +233,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Compute confidence scores for model outputs using DataParallel for faster inference."
     )
-    parser.add_argument("--input_file", type=str, required=True, help="Path to the input JSON file.")
-    parser.add_argument("--output_file", type=str, default=None, help="Path to the output JSON file.")
+    parser.add_argument("--input_file", type=str, required=True, help="Path to the input file.")
+    parser.add_argument("--output_file", type=str, default=None, help="Path to the output file.")
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size for processing.")
-    parser.add_argument("--model_dir", type=str, default=None, help="Path to the model directory)")
+    parser.add_argument("--model_name", type=str, default=None, help="Path to the model directory or huggingface model name.")
+    parser.add_argument("--input_field_name", type=str, default="model_input", help="Field name for the input text in the input file.")
+    parser.add_argument("--output_field_name", type=str, default="output", help="Field name for the output text in the input file.")
     args = parser.parse_args()
     
-    confidence_with_file(args.input_file, args.output_file, args.batch_size, args.model_dir)
+    confidence_with_file(args.input_file, args.output_file, args.batch_size, args.model_name, args.input_field_name, args.output_field_name)
